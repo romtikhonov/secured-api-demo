@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      serviceAccountName: postgres-serviceaccount
+      automountServiceAccountToken: true
+      initContainers:
+        - name: vault-agent
+          image: hashicorp/vault:2.0.1
+          args:
+            - "vault"
+            - "agent"
+            - "-config=/config/agent.hcl"
+            - "-exit-after-auth=true"
+          securityContext:
+            capabilities:
+              add:
+                - IPC_LOCK
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: secrets
+              mountPath: /secrets
+          env:
+            - name: VAULT_ADDR
+              value: "http://vault.app.svc:8200"
+      containers:
+        - name: postgres
+          image: postgres:16
+          env:
+            - name: POSTGRES_DB
+              value: "app"
+            - name: POSTGRES_USER
+              value: "app"
+            - name: POSTGRES_PASSWORD_FILE
+              value: "/secrets/password"
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: secrets
+              mountPath: /secrets
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+        - name: secrets
+          emptyDir:
+            medium: Memory
+        - name: config
+          configMap:
+            name: postgres-vault-agent-config

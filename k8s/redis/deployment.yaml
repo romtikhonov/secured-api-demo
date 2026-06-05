@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      serviceAccountName: redis-serviceaccount
+      automountServiceAccountToken: true
+      initContainers:
+        - name: vault-agent
+          image: hashicorp/vault:2.0.1
+          args:
+            - "vault"
+            - "agent"
+            - "-config=/config/agent.hcl"
+            - "-exit-after-auth=true"
+          securityContext:
+            capabilities:
+              add:
+                - IPC_LOCK
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: secrets
+              mountPath: /secrets
+          env:
+            - name: VAULT_ADDR
+              value: "http://vault.app.svc:8200"
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command: ["sh", "-c"]
+          args:
+            - |
+              REDIS_PASSWORD=$(cat /secrets/password);
+              exec redis-server \
+                --bind 0.0.0.0 \
+                --port 6379 \
+                --requirepass "$REDIS_PASSWORD" \
+                --appendonly yes
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: secrets
+              mountPath: /secrets
+              readOnly: true
+      volumes:
+        - name: secrets
+          emptyDir:
+            medium: Memory
+        - name: config
+          configMap:
+            name: redis-vault-agent-config

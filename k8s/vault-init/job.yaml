@@ -1,0 +1,95 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-init
+  namespace: app
+spec:
+  template:
+    spec:
+      serviceAccountName: default
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-vault
+          image: busybox
+          command: ["sh", "-c"]
+          args:
+            - |
+              until nc -z vault.app.svc 8200; do
+                echo "Waiting for Vault...";
+                sleep 2;
+              done
+      containers:
+        - name: init
+          image: hashicorp/vault:2.0.1
+          securityContext:
+            capabilities:
+              add:
+                - IPC_LOCK
+          env:
+            - name: VAULT_ADDR
+              value: "http://vault.app.svc:8200"
+            - name: VAULT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: vault-root-token
+                  key: token
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+
+              # Enable KV v2
+              if ! vault secrets list | grep -q "secret/"; then
+                vault secrets enable -version=2 -path=secret kv
+              fi
+
+              # Enable Kubernetes Auth
+              if ! vault auth list | grep -q "kubernetes/"; then
+                vault auth enable kubernetes
+              fi
+
+              # Configure Kubernetes Auth
+              vault write auth/kubernetes/config \
+                  kubernetes_host="https://kubernetes.default.svc.cluster.local:443" \
+                  kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
+                  token_reviewer_jwt=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token) \
+                  disable_iss_validation=true
+
+              # Create policy for API
+              vault policy write api-policy - <<EOF
+              path "secret/data/db/creds" { capabilities = ["read"] }
+              path "secret/data/auth/jwt" { capabilities = ["read"] }
+              path "secret/data/redis/creds" { capabilities = ["read"] }
+              EOF
+
+              # Create policy for Redis
+              vault policy write redis-policy - <<EOF
+              path "secret/data/redis/creds" { capabilities = ["read"] }
+              EOF
+
+              # Create policy for PostgreSQL
+              vault policy write postgres-policy - <<EOF
+              path "secret/data/db/creds" { capabilities = ["read"] }
+              EOF
+
+              # Create role for API
+              vault write auth/kubernetes/role/api-role \
+                  bound_service_account_names=api-serviceaccount \
+                  bound_service_account_namespaces=app \
+                  policies=api-policy \
+                  ttl=24h \
+                  audience=https://kubernetes.default.svc.cluster.local
+
+              # Create role for PostgreSQL
+              vault write auth/kubernetes/role/postgres-role \
+                  bound_service_account_names=postgres-serviceaccount \
+                  bound_service_account_namespaces=app \
+                  policies=postgres-policy \
+                  ttl=24h
+
+              # Create role for Redis
+              vault write auth/kubernetes/role/redis-role \
+                  bound_service_account_names=redis-serviceaccount \
+                  bound_service_account_namespaces=app \
+                  policies=redis-policy \
+                  ttl=24h

@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-vault-agent-config
+  namespace: app
+data:
+  agent.hcl: |
+    exit_after_auth = true
+    pid_file = "/tmp/pidfile"
+    auto_auth {
+      method "kubernetes" {
+        mount_path = "auth/kubernetes"
+        config = { role = "redis-role" }
+      }
+      sink "file" { config = { path = "/secrets/.token" } }
+    }
+    template {
+      contents = "{{ with secret \"secret/data/redis/creds\" }}{{ .Data.data.password }}{{ end }}"
+      destination = "/secrets/password"
+      perms = "0600"
+    }

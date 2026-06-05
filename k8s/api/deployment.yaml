@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: app
+  labels:
+    app: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      serviceAccountName: api-serviceaccount
+      automountServiceAccountToken: true
+      initContainers:
+        - name: migrate
+          image: api:latest
+          imagePullPolicy: Never
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "Waiting for PostgreSQL (implies Vault is ready)..."
+              until pg_isready -h postgres.app.svc -p 5432 -d app -U app; do
+                sleep 2
+              done
+              echo "Running migrations..."
+              alembic upgrade head
+          env:
+            - name: VAULT_ADDR
+              value: "http://vault.app.svc:8200"
+            - name: VAULT_K8S_ROLE
+              value: "api-role"
+            - name: DB_USER
+              value: "app"
+            - name: DB_HOST
+              value: "postgres.app.svc"
+            - name: DB_NAME
+              value: "app"
+            - name: DB_PORT
+              value: "5432"
+            - name: REDIS_HOST
+              value: "redis.app.svc"
+            - name: REDIS_PORT
+              value: "6379"
+      containers:
+        - name: api
+          image: api:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          env:
+            - name: VAULT_ADDR
+              value: "http://vault.app.svc:8200"
+            - name: VAULT_K8S_ROLE
+              value: "api-role"
+            - name: DB_USER
+              value: "app"
+            - name: DB_HOST
+              value: "postgres.app.svc"
+            - name: DB_NAME
+              value: "app"
+            - name: DB_PORT
+              value: "5432"
+            - name: REDIS_HOST
+              value: "redis.app.svc"
+            - name: REDIS_PORT
+              value: "6379"

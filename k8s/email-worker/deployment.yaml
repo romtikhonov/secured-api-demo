@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: email-worker
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: email-worker
+  template:
+    metadata:
+      labels:
+        app: email-worker
+    spec:
+      serviceAccountName: api-serviceaccount
+      automountServiceAccountToken: true
+      containers:
+        - name: worker
+          image: api:latest
+          imagePullPolicy: Never
+          command: ["python", "workers/email_worker.py"]
+          env:
+            - name: VAULT_ADDR
+              value: "http://vault.app.svc:8200"
+            - name: VAULT_K8S_ROLE
+              value: "api-role"
+            - name: PYTHONPATH
+              value: "/app:."
+            - name: REDIS_HOST
+              value: "redis.app.svc"
+            - name: REDIS_PORT
+              value: "6379"
