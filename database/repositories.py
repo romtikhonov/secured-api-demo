@@ -1,11 +1,11 @@
 from typing import Any, List, Optional, Type, TypeVar
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import Base, User
+from database.models import Base, User, UserProfile
 
 ModelType = TypeVar("ModelType", bound=Base)
 
@@ -44,9 +44,20 @@ class BaseRepository:
             query = query.limit(limit)
         return (await db.scalars(query)).all()
 
+    async def _update(self, db: AsyncSession, db_obj: Type[ModelType], update_data: dict) -> Type[ModelType]:
+        for field, value in update_data.items():
+            if value is not None:
+                setattr(db_obj, field, value)
+        await db.flush()
+        return db_obj
+
+    async def _delete(self, db: AsyncSession, db_obj: Type[ModelType]) -> None:
+        await db.delete(db_obj)
+        await db.flush()
+
 
 class UserRepository(BaseRepository):
-    def __init__(self, model: Type[User], session: Optional[AsyncSession] = None):
+    def __init__(self, model: Type[User], session: AsyncSession):
         super().__init__(model)
         self._session = session
 
@@ -69,3 +80,37 @@ class UserRepository(BaseRepository):
 
     async def get_all_users(self, offset: int = 0, limit: int = 0) -> List[User]:
         return await super()._get_all(db=self._session, offset=offset, limit=limit)
+
+
+class UserProfileRepository(BaseRepository):
+    def __init__(self, session: AsyncSession):
+        super().__init__(UserProfile)
+        self._session = session
+
+    async def create_profile(self, profile_data: dict) -> UserProfile:
+        return await self._create(self._session, profile_data)
+
+    async def get_profile_by_user_id(self, user_id: UUID) -> Optional[UserProfile]:
+        return await self._get_by_key(self._session, "user_id", user_id)
+
+    async def get_profile_by_id(self, id: UUID) -> Optional[UserProfile]:
+        return await self._get_by_id(self._session, id)
+
+    async def get_all_profiles(self, offset: int = 0, limit: int = 0) -> List[UserProfile]:
+        return await self._get_all(self._session, offset=offset, limit=limit)
+
+    async def update_profile(self, profile: UserProfile, update_data: dict) -> UserProfile:
+        return super()._update(db=self._session, db_obj=profile, update_data=update_data)
+
+    async def delete_profile(self, profile: UserProfile) -> None:
+        await super()._delete(db=self._session, db_obj=profile)
+
+    async def get_search_by_bio(self, search_query: str, lang: str) -> List[UserProfile]:
+        if lang not in ("english", "russian"):
+            raise ValueError("Unsupported language")
+
+        vector = func.to_tsvector(lang, UserProfile.bio)
+        ts_query = func.plainto_tsquery(lang, search_query)
+        stmt = select(UserProfile).where(vector.bool_op("@@")(ts_query))
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())

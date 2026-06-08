@@ -1,7 +1,7 @@
 import time
 from contextlib import asynccontextmanager
 
-from api.auth import router as auth_router
+from api.router import api_router
 from core.secrets import secret_manager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,7 +46,7 @@ async def add_process_time_header(request: Request, call_next):
     return response
 
 
-app.include_router(auth_router, prefix="/api/v1")
+app.include_router(api_router, prefix="/api/v1")
 
 
 @app.get("/health")

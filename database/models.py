@@ -2,7 +2,8 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from passlib.context import CryptContext
-from sqlalchemy import ForeignKey, String, func
+from sqlalchemy import ForeignKey, Index, String, cast, func, literal
+from sqlalchemy.dialects.postgresql import REGCONFIG, TEXT
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
 from sqlalchemy.types import DateTime
 
@@ -35,9 +36,22 @@ class User(Base):
 
 
 class UserProfile(Base):
-    bio: Mapped[str] = mapped_column(String(256), nullable=False)
+    bio: Mapped[str] = mapped_column(TEXT, nullable=False)
     avatar_url: Mapped[str] = mapped_column(String(256), nullable=False)
     user_id: Mapped[UUID] = mapped_column(
         ForeignKey("user.id", ondelete="CASCADE"), index=True, nullable=False, unique=True
     )
-    user: Mapped["User"] = relationship("User", back_populates="profile")
+    user: Mapped["User"] = relationship("User", back_populates="profile", foreign_keys=[user_id])
+
+    __table_args__ = (
+        Index(
+            "ix_userprofile_bio_english_fts",
+            func.to_tsvector(cast(literal("english"), type_=REGCONFIG), bio),
+            postgresql_using="gin",
+        ),
+        Index(
+            "ix_userprofile_bio_russian_fts",
+            func.to_tsvector(cast(literal("russian"), type_=REGCONFIG), bio),
+            postgresql_using="gin",
+        ),
+    )
