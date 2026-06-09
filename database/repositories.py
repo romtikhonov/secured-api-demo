@@ -81,6 +81,9 @@ class UserRepository(BaseRepository):
     async def get_all_users(self, offset: int = 0, limit: int = 0) -> List[User]:
         return await super()._get_all(db=self._session, offset=offset, limit=limit)
 
+    async def update_user(self, user: User, update_data: dict) -> User:
+        return super()._update(db=self._session, db_obj=user, update_data=update_data)
+
 
 class UserProfileRepository(BaseRepository):
     def __init__(self, session: AsyncSession):

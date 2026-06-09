@@ -25,3 +25,4 @@ class UserResponse(BaseModel):
     id: UUID
     email: EmailStr
     created_at: datetime
+    score: int

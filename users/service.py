@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from cache.leaderboard import update_user_score
 from database.models import UserProfile
 from database.unit_of_work import UnitOfWork
 from fastapi import HTTPException
@@ -36,3 +37,13 @@ class UserService:
 
     async def delete_profile(self, user_id: UUID) -> None:
         await self.uow.user_profiles.delete_profile(await self.get_profile(user_id))
+
+    async def add_points(self, user_id: UUID, points: int) -> int:
+        user = await self.uow.users.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(404, "User not found")
+
+        user_updated = await self.uow.users.update_user(user, {"score": user.score + points})
+        await update_user_score(user_id, user_updated.score)
+
+        return user_updated.score

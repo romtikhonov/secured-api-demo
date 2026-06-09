@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from passlib.context import CryptContext
-from sqlalchemy import ForeignKey, Index, String, cast, func, literal
+from sqlalchemy import ForeignKey, Index, Integer, String, cast, func, literal
 from sqlalchemy.dialects.postgresql import REGCONFIG, TEXT
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
 from sqlalchemy.types import DateTime
@@ -27,6 +27,7 @@ class User(Base):
     profile: Mapped["UserProfile"] = relationship(
         "UserProfile", back_populates="user", lazy="selectin", uselist=False, cascade="all, delete-orphan"
     )
+    score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     def set_password(self, password: str):
         self._password_hash = pwd_context.hash(password)

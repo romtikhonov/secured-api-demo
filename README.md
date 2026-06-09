@@ -40,3 +40,5 @@ make update-api
 make logs-api
 - To remove all run:
 make remove-all
+- To launch postgres port-forward run:
+make db-port-forward

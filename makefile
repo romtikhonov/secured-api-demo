@@ -1,6 +1,6 @@
 # Makefile
 
-.PHONY: build-image minikube vault vault-root-token vault-init vault-cleanup db api worker start-api logs-api setup setup-continue deploy-services remove-all update-api update-api-bat
+.PHONY: build-image minikube vault vault-root-token vault-init vault-cleanup db api worker start-api logs-api setup setup-continue deploy-services remove-all update-api update-api-bat db-port-forward
 
 build-image:
 	@echo "Building api:latest..."
@@ -69,6 +69,10 @@ worker:
 start-api:
 	@echo "Launch port-forward..."
 	kubectl port-forward svc/api 8000:8000 -n app
+
+db-port-forward:
+	@echo "Launch port-forward..."
+	kubectl port-forward svc/postgres 5432:5432 -n app
 
 update-api:
 	@TAG=$$(date +'%d%m%Y-%H%M%S'); \
