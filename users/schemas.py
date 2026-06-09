@@ -42,3 +42,8 @@ class UserProfileRead(UserProfileBase):
 class UserProfileSearchResult(UserProfileBase):
     user_id: UUID
     email: EmailStr
+
+
+class LeaderboardEntry(BaseModel):
+    user_id: UUID
+    score: int

@@ -30,3 +30,6 @@ Thumbs.db
 # Tests
 .coverage
 .pytest_cache/
+
+# Pre-commit
+.pre-commit-config.yaml

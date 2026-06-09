@@ -10,7 +10,7 @@ async def update_user_score(user_id: UUID, points: int) -> int:
     return int(new_score)
 
 
-async def get_top_players(limit: int = settings.redis.leaderboard_top_n):
+async def get_top_users(limit: int = settings.redis.leaderboard_top_n):
     return await redis_client.zrevrange(settings.redis.leaderboard_key, 0, limit - 1, withscores=True)
 
 
