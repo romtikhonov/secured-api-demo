@@ -21,4 +21,4 @@ async def subscribe_to_logins():
     async for message in pubsub.listen():
         if message["type"] == "message":
             data = json.loads(message["data"])
-            logger.info(f"🔔 Login notification received: {data['email']}")
+            logger.info(f"Login notification received: {data['email']}")

@@ -1,9 +1,9 @@
 from uuid import UUID
 
+from database.models import UserProfile
 from database.unit_of_work import UnitOfWork
 from fastapi import HTTPException
 
-from test_api.database.models import UserProfile
 from users.schemas import UserProfileCreate, UserProfilePatch, UserProfileUpdate
 
 

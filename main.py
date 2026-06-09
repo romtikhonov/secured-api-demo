@@ -1,7 +1,9 @@
+import asyncio
 import time
 from contextlib import asynccontextmanager
 
 from api.router import api_router
+from cache.pubsub import subscribe_to_logins
 from core.secrets import secret_manager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,11 +14,20 @@ async def lifespan(app: FastAPI):
     try:
         db_pass = secret_manager.get_db_password()
         jwt_key = secret_manager.get_auth_secret_key()
-        if not db_pass or not jwt_key:
+        redis_pass = secret_manager.get_redis_password()
+        if not db_pass or not jwt_key or not redis_pass:
             raise ValueError("Loaded secrets contain empty values")
     except Exception as e:
         raise RuntimeError("Startup failed - check Vault connectivity and secret paths") from e
+    login_task = asyncio.create_task(subscribe_to_logins())
+
     yield
+
+    login_task.cancel()
+    try:
+        await login_task
+    except asyncio.CancelledError:
+        pass
 
 
 app_config = {

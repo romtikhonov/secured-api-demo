@@ -72,18 +72,22 @@ start-api:
 
 update-api:
 	@TAG=$$(date +'%d%m%Y-%H%M%S'); \
-	echo "Updating API..." && \
+	echo "Updating API and Workers..." && \
 	echo "Building image: api-$$TAG" && \
 	docker build -t "api-$$TAG" . && \
 	echo "Cleaning old image from Minikube..." && \
 	minikube ssh "docker rmi api-$$TAG 2>/dev/null || true" && \
 	echo "Loading image into Minikube..." && \
 	minikube image load "api-$$TAG" && \
-	echo "Updating deployment..." && \
-	kubectl set image deployment/api api="api-$$TAG" -n app && \
-	echo "Waiting for new pod to be ready..." && \
+	echo "Updating API deployment..." && \
+	kubectl set image deployment/api api="api-$$TAG" migrate="api-$$TAG" -n app && \
+	echo "Updating Email Worker deployment..." && \
+	kubectl set image deployment/email-worker worker="api-$$TAG" -n app && \
+	echo "Waiting for API rollout..." && \
 	kubectl rollout status deployment/api -n app --timeout=60s && \
-	echo "API updated successfully!"
+	echo "Waiting for Email Worker rollout..." && \
+	kubectl rollout status deployment/email-worker -n app --timeout=60s && \
+	echo "All services updated successfully!"
 
 update-api-bat:
 	cmd /c ".\\scripts\\update-api.bat"
