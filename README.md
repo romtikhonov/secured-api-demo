@@ -25,7 +25,7 @@ make setup-continue
 make deploy-services
 
 # 2. Start port-forward (keep window minimized)
-make start-api
+make api-port-forward
 
 # 3. Test the API
 curl http://localhost:8000/health

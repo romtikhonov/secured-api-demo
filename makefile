@@ -1,6 +1,6 @@
 # Makefile
 
-.PHONY: build-image minikube vault vault-root-token vault-init vault-cleanup db api worker start-api logs-api setup setup-continue deploy-services remove-all update-api update-api-bat db-port-forward
+.PHONY: build-image minikube vault vault-root-token vault-init vault-cleanup db api worker api-port-forward logs-api setup setup-continue deploy-services remove-all update-api update-api-bat db-port-forward
 
 build-image:
 	@echo "Building api:latest..."
@@ -66,7 +66,7 @@ worker:
 	@echo "Deploy email-worker..."
 	kubectl apply -f k8s/email-worker/
 
-start-api:
+api-port-forward:
 	@echo "Launch port-forward..."
 	kubectl port-forward svc/api 8000:8000 -n app
 
