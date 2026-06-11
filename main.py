@@ -3,12 +3,13 @@ import time
 from contextlib import asynccontextmanager
 
 from api.v1.router import api_router
-from cache.pubsub import subscribe_to_logins
+from cache.dependencies import get_redis_client, init_redis_client
+from cache.pubsub import LoginEventService
+from core.dependencies import get_secret_provider
 from core.secrets import SecretProvider
+from database.session import init_database_session
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-
-from test_api.core.dependencies import get_secret_provider
 
 
 @asynccontextmanager
@@ -22,7 +23,10 @@ async def lifespan(app: FastAPI):
             raise ValueError("Loaded secrets contain empty values")
     except Exception as e:
         raise RuntimeError("Startup failed - check Vault connectivity and secret paths") from e
-    login_task = asyncio.create_task(subscribe_to_logins())
+    init_database_session(db_pass)
+    init_redis_client(redis_pass)
+    login_event_service = LoginEventService(redis_client=get_redis_client())
+    login_task = asyncio.create_task(login_event_service.subscribe_to_login_event())
 
     yield
 

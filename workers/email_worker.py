@@ -1,7 +1,8 @@
 import asyncio
 from uuid import uuid4
 
-from cache.dependencies import get_redis_client
+from cache.dependencies import get_redis_client, init_redis_client
+from core.dependencies import get_secret_provider
 from core.logger import logger
 from redis import ResponseError
 from redis.asyncio import Redis
@@ -24,6 +25,8 @@ async def create_consumer_group(redis_client: Redis):
 
 
 async def process_events():
+    secret_provider = get_secret_provider()
+    init_redis_client(secret_provider.get_redis_password())
     redis_client = get_redis_client()
     await create_consumer_group(redis_client=redis_client)
     logger.info(f"Worker '{CONSUMER_NAME}' started listening for events...")

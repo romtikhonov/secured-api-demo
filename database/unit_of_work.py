@@ -1,5 +1,5 @@
 from database.repositories import UserProfileRepository, UserRepository
-from database.session import SessionLocal
+from database.session import get_session_local
 
 
 class UnitOfWork:
@@ -15,6 +15,7 @@ class UnitOfWork:
         return self._user_profiles
 
     async def __aenter__(self):
+        SessionLocal = get_session_local()
         self._session = SessionLocal()
         self._users = UserRepository(session=self._session)
         self._user_profiles = UserProfileRepository(session=self._session)
