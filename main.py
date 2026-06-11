@@ -2,7 +2,7 @@ import asyncio
 import time
 from contextlib import asynccontextmanager
 
-from api.router import api_router
+from api.v1.router import api_router
 from cache.pubsub import subscribe_to_logins
 from core.secrets import secret_manager
 from fastapi import FastAPI, Request

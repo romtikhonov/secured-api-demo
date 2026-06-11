@@ -9,10 +9,11 @@ from database.models import User
 from database.unit_of_work import UnitOfWork
 from fastapi import APIRouter, Depends, HTTPException, status
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+protected = APIRouter()
+public = APIRouter()
 
 
-@router.post("/login", response_model=TokenResponse)
+@public.post("/login", response_model=TokenResponse)
 async def login(request: LoginRequest):
     auth_result = await AuthService.authenticate_user(email=request.email, password=request.password)
 
@@ -27,12 +28,12 @@ async def login(request: LoginRequest):
     return TokenResponse(**auth_result)
 
 
-@router.get("/me", response_model=UserResponse)
+@protected.get("/me", response_model=UserResponse)
 async def get_current_user(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-@router.post("/register", response_model=UserResponse)
+@public.post("/register", response_model=UserResponse)
 async def register(request: RegisterRequest):
     async with UnitOfWork() as uow:
         existing_user = await uow.users.get_user_by_email(email=request.email)

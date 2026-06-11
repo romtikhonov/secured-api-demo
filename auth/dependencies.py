@@ -21,7 +21,7 @@ async def get_token_from_header(credentials: HTTPAuthorizationCredentials = Depe
     return credentials.credentials
 
 
-def validate_access_token(token: str) -> UUID:
+def require_authentication(token: str = Depends(get_token_from_header)) -> UUID:
     try:
         payload = verify_token(token)
         if payload.get("token_type") != "access":
@@ -37,12 +37,10 @@ def validate_access_token(token: str) -> UUID:
         )
 
 
-async def get_current_user(token: str = Depends(get_token_from_header)) -> UserResponse:
-    user_id = validate_access_token(token)
-
+async def get_current_user(user_id: UUID = Depends(require_authentication)) -> UserResponse:
     cached_user = await get_user_from_cache(user_id)
     if cached_user:
-        logger.info(f"✅ User {user_id} loaded from CACHE")
+        logger.info(f"User {user_id} loaded from CACHE")
         return cached_user
 
     async with UnitOfWork() as uow:
@@ -52,6 +50,6 @@ async def get_current_user(token: str = Depends(get_token_from_header)) -> UserR
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid credentials",
             )
-        logger.info(f"💾 User {user_id} loaded from DATABASE")
+        logger.info(f"User {user_id} loaded from DATABASE")
         await set_user_to_cache(user)
         return UserResponse.model_validate(user)

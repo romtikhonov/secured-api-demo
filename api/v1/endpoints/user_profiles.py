@@ -11,10 +11,10 @@ from users.schemas import (
 )
 from users.service import UserService
 
-router = APIRouter(prefix="/user-profiles", tags=["user-profiles"])
+protected = APIRouter()
 
 
-@router.post("/", response_model=UserProfileRead)
+@protected.post("/", response_model=UserProfileRead)
 async def create_profile(
     data: UserProfileCreate,
     current_user: User = Depends(get_current_user),
@@ -25,7 +25,7 @@ async def create_profile(
         return profile
 
 
-@router.get("/me", response_model=UserProfileRead)
+@protected.get("/me", response_model=UserProfileRead)
 async def get_my_profile(
     current_user: User = Depends(get_current_user),
 ):
@@ -34,7 +34,7 @@ async def get_my_profile(
         return await service.get_profile(current_user.id)
 
 
-@router.put("/me", response_model=UserProfileRead)
+@protected.put("/me", response_model=UserProfileRead)
 async def update_profile_full(
     data: UserProfileUpdate,
     current_user: User = Depends(get_current_user),
@@ -44,7 +44,7 @@ async def update_profile_full(
         return await service.update_profile_full(current_user.id, data)
 
 
-@router.patch("/me", response_model=UserProfileRead)
+@protected.patch("/me", response_model=UserProfileRead)
 async def update_profile_partial(
     data: UserProfilePatch,
     current_user: User = Depends(get_current_user),
@@ -54,7 +54,7 @@ async def update_profile_partial(
         return await service.update_profile_partial(current_user.id, data)
 
 
-@router.delete("/me", status_code=204)
+@protected.delete("/me", status_code=204)
 async def delete_profile(
     current_user: User = Depends(get_current_user),
 ):
@@ -63,11 +63,11 @@ async def delete_profile(
         await service.delete_profile(current_user.id)
 
 
-@router.get("/search", response_model=list[UserProfileSearchResult])
+@protected.get("/search", response_model=list[UserProfileSearchResult])
 async def search_profiles(
     query: str = Query(..., min_length=1, max_length=100),
     lang: str = Query("english", pattern="^(english|russian)$"),
-    current_user: User = Depends(get_current_user),
+    _: User = Depends(get_current_user),
 ):
     async with UnitOfWork() as uow:
         service = UserService(uow)
