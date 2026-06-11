@@ -2,7 +2,7 @@ from typing import Dict, Optional
 
 from database.unit_of_work import UnitOfWork
 
-from auth.utils import create_access_token, create_refresh_token
+from auth.utils import create_access_token, create_refresh_token, verify_refresh_token
 
 
 class AuthService:
@@ -19,3 +19,11 @@ class AuthService:
                 "refresh_token": create_refresh_token(user_id=user.id),
                 "user_id": str(user.id),
             }
+
+    @classmethod
+    def refresh_access_token(cls, refresh_token) -> dict:
+        user_id = verify_refresh_token(refresh_token)
+        return {
+            "access_token": create_access_token(user_id=user_id),
+            "refresh_token": create_refresh_token(user_id=user_id),
+        }

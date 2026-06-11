@@ -26,3 +26,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     created_at: datetime
     score: int
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str

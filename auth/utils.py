@@ -25,6 +25,7 @@ def create_refresh_token(user_id: UUID) -> str:
         "sub": str(user_id),
         "exp": datetime.now(timezone.utc) + timedelta(days=settings.auth.refresh_token_expire_days),
         "token_type": "refresh",
+        "aud": "refresh",
     }
     return jwt.encode(payload, secret_manager.get_auth_secret_key(), algorithm=settings.auth.algorithm)
 
@@ -36,3 +37,21 @@ def verify_token(token: str) -> Optional[dict]:
         raise TokenValidationError("Token has expired")
     except JWTError:
         raise TokenValidationError("Invalid token signature")
+
+
+def verify_refresh_token(token: str) -> UUID:
+    try:
+        payload = jwt.decode(
+            token,
+            secret_manager.get_auth_secret_key(),
+            algorithms=[settings.auth.algorithm],
+            audience="refresh",
+        )
+        if payload.get("token_type") != "refresh":
+            raise TokenValidationError("Invalid token type")
+        user_id = payload.get("sub")
+        if not user_id:
+            raise TokenValidationError("User ID missing")
+        return UUID(user_id)
+    except JWTError as e:
+        raise TokenValidationError(f"Invalid refresh token: {e}")

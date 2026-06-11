@@ -1,5 +1,5 @@
 from auth.dependencies import get_current_user
-from auth.schemas import LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from auth.schemas import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse, UserResponse
 from auth.service import AuthService
 from cache.event_stream import publish_user_registered
 from cache.pubsub import publish_login_event
@@ -47,3 +47,9 @@ async def register(request: RegisterRequest):
         await set_user_to_cache(user)
         await publish_user_registered(user_id=user.id, email=user.email)
         return UserResponse.model_validate(user)
+
+
+@protected.post("/refresh", response_model=TokenResponse)
+async def refresh_access_token(request: RefreshRequest):
+    refresh_result = AuthService.refresh_access_token(refresh_token=request.refresh_token)
+    return TokenResponse(**refresh_result)
