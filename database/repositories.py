@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from database.models import Base, User, UserProfile
 
@@ -57,8 +58,8 @@ class BaseRepository:
 
 
 class UserRepository(BaseRepository):
-    def __init__(self, model: Type[User], session: AsyncSession):
-        super().__init__(model)
+    def __init__(self, session: AsyncSession):
+        super().__init__(User)
         self._session = session
 
     async def create_user(self, user_data: dict) -> User:
@@ -82,7 +83,7 @@ class UserRepository(BaseRepository):
         return await super()._get_all(db=self._session, offset=offset, limit=limit)
 
     async def update_user(self, user: User, update_data: dict) -> User:
-        return super()._update(db=self._session, db_obj=user, update_data=update_data)
+        return await super()._update(db=self._session, db_obj=user, update_data=update_data)
 
 
 class UserProfileRepository(BaseRepository):
@@ -114,6 +115,6 @@ class UserProfileRepository(BaseRepository):
 
         vector = func.to_tsvector(lang, UserProfile.bio)
         ts_query = func.plainto_tsquery(lang, search_query)
-        stmt = select(UserProfile).where(vector.bool_op("@@")(ts_query))
+        stmt = select(UserProfile).options(selectinload(UserProfile.user)).where(vector.bool_op("@@")(ts_query))
         result = await self._session.execute(stmt)
         return list(result.scalars().all())

@@ -46,4 +46,9 @@ class UserProfileSearchResult(UserProfileBase):
 
 class LeaderboardEntry(BaseModel):
     user_id: UUID
+    email: EmailStr
     score: int
+
+
+class BonusClaim(BaseModel):
+    points: int = Field(..., gt=0, le=100)

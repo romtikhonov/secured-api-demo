@@ -22,14 +22,13 @@ async def login(request: LoginRequest):
             detail="Invalid credentials",
         )
 
-    await publish_login_event(str(auth_result["user_id"]), request.email)
-
+    await publish_login_event(auth_result["user_id"], request.email)
+    await register_visitor(auth_result["user_id"])
     return TokenResponse(**auth_result)
 
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user(current_user: User = Depends(get_current_user)):
-    await register_visitor(current_user.id)
     return current_user
 
 

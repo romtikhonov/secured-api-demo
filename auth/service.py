@@ -17,5 +17,5 @@ class AuthService:
             return {
                 "access_token": create_access_token(user_id=user.id),
                 "refresh_token": create_refresh_token(user_id=user.id),
-                "user_id": user.id,
+                "user_id": str(user.id),
             }

@@ -1,4 +1,3 @@
-from database.models import User, UserProfile
 from database.repositories import UserProfileRepository, UserRepository
 from database.session import SessionLocal
 
@@ -17,8 +16,8 @@ class UnitOfWork:
 
     async def __aenter__(self):
         self._session = SessionLocal()
-        self._users = UserRepository(User, session=self._session)
-        self._user_profiles = UserProfileRepository(UserProfile, session=self._session)
+        self._users = UserRepository(session=self._session)
+        self._user_profiles = UserProfileRepository(session=self._session)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):

@@ -6,21 +6,21 @@ from cache.leaderboard import get_top_users
 from cache.unique_visitors import get_unique_visitors_count
 from database.models import User
 from database.unit_of_work import UnitOfWork
-from fastapi import APIRouter, Body, Depends
-from users.schemas import LeaderboardEntry
+from fastapi import APIRouter, Depends
+from users.schemas import BonusClaim, LeaderboardEntry
 from users.service import UserService
 
-router = APIRouter(prefix="/users", tags=["Users"])
+router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.post("/claim-daily-bonus")
 async def claim_daily_bonus(
-    points: int = Body(..., gt=0, le=100),
+    request: BonusClaim,
     current_user: User = Depends(get_current_user),
 ):
     async with UnitOfWork() as uow:
         service = UserService(uow)
-        return await service.claim_daily_bonus(current_user.id, points)
+        return await service.claim_daily_bonus(current_user.id, request.points)
 
 
 @router.get("/leaderboard/top", response_model=List[LeaderboardEntry])

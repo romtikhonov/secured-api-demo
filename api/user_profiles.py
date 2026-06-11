@@ -66,7 +66,7 @@ async def delete_profile(
 @router.get("/search", response_model=list[UserProfileSearchResult])
 async def search_profiles(
     query: str = Query(..., min_length=1, max_length=100),
-    lang: str = Query("english", regex="^(english|russian)$"),
+    lang: str = Query("english", pattern="^(english|russian)$"),
     current_user: User = Depends(get_current_user),
 ):
     async with UnitOfWork() as uow:
