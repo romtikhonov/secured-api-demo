@@ -1,16 +1,18 @@
 import asyncio
 from uuid import uuid4
 
-from cache.redis_client import redis_client
+from cache.dependencies import get_redis_client
 from core.logger import logger
 from redis import ResponseError
+from redis.asyncio import Redis
 
 STREAM_NAME = "user_events"
 GROUP_NAME = "email_workers"
 CONSUMER_NAME = f"worker-{str(uuid4())}"
 
 
-async def create_consumer_group():
+async def create_consumer_group(redis_client: Redis):
+    redis_client = get_redis_client()
     try:
         await redis_client.xgroup_create(STREAM_NAME, GROUP_NAME, mkstream=True)
         logger.info(f"Consumer group '{GROUP_NAME}' created")
@@ -22,7 +24,8 @@ async def create_consumer_group():
 
 
 async def process_events():
-    await create_consumer_group()
+    redis_client = get_redis_client()
+    await create_consumer_group(redis_client=redis_client)
     logger.info(f"Worker '{CONSUMER_NAME}' started listening for events...")
 
     while True:

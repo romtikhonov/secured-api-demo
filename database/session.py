@@ -1,8 +1,8 @@
 from core.config import settings
-from core.secrets import secret_manager
+from core.dependencies import get_secret_provider
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-connection_uri = settings.db.get_database_url_async(secret_manager.get_db_password())
+connection_uri = settings.db.get_database_url_async(get_secret_provider().get_db_password())
 if connection_uri.startswith("postgres://"):
     connection_uri = connection_uri.replace("postgres://", "postgresql://", 1)
 

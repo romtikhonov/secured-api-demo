@@ -4,17 +4,20 @@ from contextlib import asynccontextmanager
 
 from api.v1.router import api_router
 from cache.pubsub import subscribe_to_logins
-from core.secrets import secret_manager
-from fastapi import FastAPI, Request
+from core.secrets import SecretProvider
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+
+from test_api.core.dependencies import get_secret_provider
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    secret_provider = get_secret_provider()
     try:
-        db_pass = secret_manager.get_db_password()
-        jwt_key = secret_manager.get_auth_secret_key()
-        redis_pass = secret_manager.get_redis_password()
+        db_pass = secret_provider.get_db_password()
+        jwt_key = secret_provider.get_auth_secret_key()
+        redis_pass = secret_provider.get_redis_password()
         if not db_pass or not jwt_key or not redis_pass:
             raise ValueError("Loaded secrets contain empty values")
     except Exception as e:
@@ -61,11 +64,11 @@ app.include_router(api_router, prefix="/api/v1")
 
 
 @app.get("/health")
-async def health_check():
+async def health_check(secret_provider: SecretProvider = Depends(get_secret_provider)):
     try:
-        db_pass = secret_manager.get_db_password()
-        jwt_key = secret_manager.get_auth_secret_key()
-        redis_pass = secret_manager.get_redis_password()
+        db_pass = secret_provider.get_db_password()
+        jwt_key = secret_provider.get_auth_secret_key()
+        redis_pass = secret_provider.get_redis_password()
         return {
             "status": "ok",
             "db_password_len": len(db_pass),

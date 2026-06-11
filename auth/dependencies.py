@@ -1,15 +1,21 @@
 from uuid import UUID
 
-from cache.user_cache import get_user_from_cache, set_user_to_cache
+from cache.dependencies import get_user_cache_service
+from cache.user_cache import UserCacheService
+from core.dependencies import get_secret_provider
 from core.logger import logger
 from database.unit_of_work import UnitOfWork
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from auth.schemas import UserResponse
-from auth.utils import TokenValidationError, verify_token
+from auth.service import AuthService, TokenValidationError
 
 security = HTTPBearer()
+
+
+def get_auth_service(secret_provider=Depends(get_secret_provider)) -> AuthService:
+    return AuthService(secret_provider=secret_provider)
 
 
 async def get_token_from_header(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
@@ -21,15 +27,11 @@ async def get_token_from_header(credentials: HTTPAuthorizationCredentials = Depe
     return credentials.credentials
 
 
-def require_authentication(token: str = Depends(get_token_from_header)) -> UUID:
+def require_authentication(
+    token: str = Depends(get_token_from_header), auth_service: AuthService = Depends(get_auth_service)
+) -> UUID:
     try:
-        payload = verify_token(token)
-        if payload.get("token_type") != "access":
-            raise TokenValidationError("Invalid token type")
-        user_id = payload.get("sub", None)
-        if not user_id:
-            raise TokenValidationError("User ID not found in token")
-        return UUID(user_id)
+        return auth_service.validate_authentication(token)
     except (TokenValidationError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -37,8 +39,11 @@ def require_authentication(token: str = Depends(get_token_from_header)) -> UUID:
         )
 
 
-async def get_current_user(user_id: UUID = Depends(require_authentication)) -> UserResponse:
-    cached_user = await get_user_from_cache(user_id)
+async def get_current_user(
+    user_id: UUID = Depends(require_authentication),
+    user_cache_service: UserCacheService = Depends(get_user_cache_service),
+) -> UserResponse:
+    cached_user = await user_cache_service.get_from_cache(user_id)
     if cached_user:
         logger.info(f"User {user_id} loaded from CACHE")
         return cached_user
@@ -51,5 +56,5 @@ async def get_current_user(user_id: UUID = Depends(require_authentication)) -> U
                 detail="Invalid credentials",
             )
         logger.info(f"User {user_id} loaded from DATABASE")
-        await set_user_to_cache(user)
+        await user_cache_service.set_to_cache(user)
         return UserResponse.model_validate(user)

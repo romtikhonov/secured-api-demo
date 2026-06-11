@@ -35,9 +35,9 @@ class DatabaseSettings(BaseSettings):
         if raw_password:
             password = quote_plus(raw_password)
         else:
-            from core.secrets import secret_manager
+            from core.dependencies import get_secret_provider
 
-            password = quote_plus(secret_manager.get_db_password())
+            password = quote_plus(get_secret_provider().get_db_password())
 
         return f"postgresql://{self.user}:{password}@{self.host}:{self.port}/{self.name}"
 

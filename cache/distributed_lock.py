@@ -2,14 +2,12 @@ from uuid import uuid4
 
 from redis.asyncio import Redis
 
-from cache.redis_client import redis_client
-
 
 class DistributedLock:
-    def __init__(self, lock_name: str, timeout: int = 10):
+    def __init__(self, *, redis_client: Redis, lock_name: str, timeout: int = 10):
         self._lock_name = f"lock:{lock_name}"
         self._timeout = timeout
-        self._redis_client: Redis = redis_client
+        self._redis_client = redis_client
         self._lock_value = str(uuid4())
 
     async def acquire(self) -> bool:

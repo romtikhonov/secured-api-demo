@@ -1,9 +1,5 @@
-from datetime import date
 from uuid import UUID
 
-from cache.leaderboard import update_user_score
-from cache.locks import create_user_lock
-from cache.redis_client import redis_client
 from database.models import UserProfile
 from database.unit_of_work import UnitOfWork
 from fastapi import HTTPException, status
@@ -47,23 +43,4 @@ class UserService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
         user_updated = await self.uow.users.update_user(user, {"score": user.score + points})
-        await update_user_score(user_id, user_updated.score)
-
         return user_updated.score
-
-    async def claim_daily_bonus(self, user_id: UUID, bonus_points: int) -> dict:
-        lock = create_user_lock(user_id=user_id, operation=f"claim_daily_bonus:{date.today().isoformat()}")
-        if not await lock.acquire():
-            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many requests")
-
-        try:
-            claimed_key = f"bonus_claimed:{user_id}:{date.today().isoformat()}"
-            if await redis_client.exists(claimed_key):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bonus already claimed")
-
-            new_score = await self.add_points(user_id=user_id, points=bonus_points)
-            await redis_client.setex(name=claimed_key, time=86400, value="1")
-
-            return {"message": "Bonus claimed!", "new_score": new_score}
-        finally:
-            await lock.release()

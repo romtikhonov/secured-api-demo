@@ -46,9 +46,17 @@ class UserProfileSearchResult(UserProfileBase):
 
 class LeaderboardEntry(BaseModel):
     user_id: UUID
-    email: EmailStr
     score: int
 
 
-class BonusClaim(BaseModel):
+class BonusClaimRequest(BaseModel):
     points: int = Field(..., gt=0, le=100)
+
+
+class BonusClaimResponse(BaseModel):
+    new_score: int
+
+
+class UniqueVisitorsResponse(BaseModel):
+    date: str
+    unique_visitors: int
