@@ -6,9 +6,8 @@ from api.v1.router import api_router
 from cache.dependencies import get_redis_client, init_redis_client
 from cache.pubsub import LoginEventService
 from core.dependencies import get_secret_provider
-from core.secrets import SecretProvider
 from database.session import init_database_session
-from fastapi import Depends, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -68,16 +67,5 @@ app.include_router(api_router, prefix="/api/v1")
 
 
 @app.get("/health")
-async def health_check(secret_provider: SecretProvider = Depends(get_secret_provider)):
-    try:
-        db_pass = secret_provider.get_db_password()
-        jwt_key = secret_provider.get_auth_secret_key()
-        redis_pass = secret_provider.get_redis_password()
-        return {
-            "status": "ok",
-            "db_password_len": len(db_pass),
-            "jwt_key_len": len(jwt_key),
-            "redis_pass_len": len(redis_pass),
-        }
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+async def health_check():
+    return {"status": "ok"}
