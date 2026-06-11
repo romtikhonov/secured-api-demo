@@ -33,3 +33,9 @@ Thumbs.db
 
 # Pre-commit
 .pre-commit-config.yaml
+
+#ruff
+.ruff_cache/
+
+#git
+git-auto-fixup.sh
