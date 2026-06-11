@@ -3,6 +3,12 @@
 Local development environment with Minikube, HashiCorp Vault, PostgreSQL, Redis, and background workers.  
 All secrets are securely managed via Vault.
 
+🔐 **Security Features**:  
+- JWT access/refresh tokens with audience validation  
+- Secrets from HashiCorp Vault (Kubernetes auth)  
+- Distributed locks for race condition prevention  
+- Parameterized SQL queries (SQL injection protection)
+
 ---
 
 ## 🧰 Requirements
@@ -14,14 +20,26 @@ All secrets are securely managed via Vault.
 
 ---
 
+## 🏗️ Architecture Overview
+
+**Key Patterns Implemented**:  
+✅ Dependency Injection (FastAPI Depends)  
+✅ Unit of Work + Repository Pattern  
+✅ Write-Through Caching (User profiles)  
+✅ Cache-Aside (Leaderboard scores)  
+✅ Observer Pattern (Login notifications via Pub/Sub)  
+✅ Adapter Pattern (SecretProvider abstraction)
+
+---
+
 ## 🚦 Quick Start
 
 ```bash
 # 1. Deploy the full stack
 make setup
-# → Make Vault manual steps
+# → Follow terminal instructions to initialize Vault
 make setup-continue
-# → Write secrets
+# → Write secrets to Vault
 make deploy-services
 
 # 2. Start port-forward (keep window minimized)
@@ -29,7 +47,6 @@ make api-port-forward
 
 # 3. Test the API
 curl http://localhost:8000/health
-
 
 💡 On first run, follow terminal instructions to initialize Vault.
 
