@@ -1,6 +1,7 @@
 import os
 from typing import Annotated
 from urllib.parse import quote_plus
+from uuid import uuid4
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -62,6 +63,7 @@ class RedisCacheSettings(BaseSettings):
     # Stream names
     user_events_stream: str = "user_events"
     email_workers_group: str = "email_workers"
+    email_workers_consumer_group: str = f"worker-{str(uuid4())}"
 
     # Pub/Sub channels
     login_channel: str = "user_login_events"

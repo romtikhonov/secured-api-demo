@@ -1,19 +1,18 @@
 import asyncio
-from uuid import uuid4
 
 from cache.dependencies import get_redis_client, init_redis_client
+from core.config import settings
 from core.dependencies import get_secret_provider
 from core.logger import logger
 from redis import ResponseError
 from redis.asyncio import Redis
 
-STREAM_NAME = "user_events"
-GROUP_NAME = "email_workers"
-CONSUMER_NAME = f"worker-{str(uuid4())}"
+STREAM_NAME = settings.redis.user_events_stream
+GROUP_NAME = settings.redis.email_workers_group
+CONSUMER_NAME = settings.redis.email_workers_consumer_group
 
 
 async def create_consumer_group(redis_client: Redis):
-    redis_client = get_redis_client()
     try:
         await redis_client.xgroup_create(STREAM_NAME, GROUP_NAME, mkstream=True)
         logger.info(f"Consumer group '{GROUP_NAME}' created")
