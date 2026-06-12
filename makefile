@@ -1,6 +1,6 @@
 # Makefile
 
-.PHONY: build-image minikube vault vault-root-token vault-init vault-cleanup db api worker api-port-forward logs-api setup setup-continue deploy-services remove-all update-api update-api-bat db-port-forward
+.PHONY: build-image minikube vault vault-root-token vault-init vault-cleanup db api worker api-port-forward logs-api setup setup-continue deploy-services remove-all update-api update-api-bat db-port-forward vault-unseal restart-pods 
 
 build-image:
 	@echo "Building api:latest..."
@@ -102,6 +102,26 @@ logs-api:
 
 remove-all:
 	minikube delete
+
+vault-unseal:
+	kubectl exec -it -n app deploy/vault -- sh -c 'export VAULT_ADDR=http://127.0.0.1:8200 && vault operator unseal'
+
+restart-pods:
+	echo "Restarting databases..."
+	kubectl rollout restart deployment/postgres -n app
+	kubectl rollout restart deployment/redis -n app
+
+	echo "Waiting for databases..."
+	kubectl rollout status deployment/postgres -n app --timeout=60s
+	kubectl rollout status deployment/redis -n app --timeout=60s
+
+	echo "Restarting applications..."
+	kubectl rollout restart deployment/api -n app
+	kubectl rollout restart deployment/email-worker -n app
+
+	echo "Waiting for applications..."
+	kubectl rollout status deployment/api -n app --timeout=60s
+	kubectl rollout status deployment/email-worker -n app --timeout=60s
 
 setup: build-image minikube vault vault-root-token
 
