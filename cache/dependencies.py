@@ -21,7 +21,6 @@ def init_redis_client(redis_password: str):
             password=redis_password,
             decode_responses=True,
             max_connections=20,
-            retry_on_timeout=True,
             health_check_interval=30,
         )
 
